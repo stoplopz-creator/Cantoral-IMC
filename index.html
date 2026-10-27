@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cantoral I.C.M.</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Roboto', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            icm: {
+              header: '#0B438B',
+              bgLeft: '#DBE3EB',
+              btn: '#0D47A1',
+              btnHover: '#0A377D',
+              chord: '#1D4ED8', // Acordes en azul
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    /* Estilos de visualización de acordes sobre letra */
+    .song-line-container {
+      margin-bottom: 0.65rem;
+      line-height: 1.1;
+    }
+
+    .chord-row {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: #1D4ED8; /* Color Azul para los Acordes */
+      white-space: pre;
+      line-height: 1.1;
+      height: 1.25rem;
+    }
+
+    .lyric-row {
+      font-family: 'Roboto', sans-serif;
+      font-weight: 400; /* Letra en peso normal (sin negrita) */
+      font-size: 1.05rem;
+      color: #111827;
+      white-space: pre-wrap;
+      line-height: 1.35;
+    }
+
+    /* Reglas de impresión */
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background: white !important;
+      }
+      #printable-content {
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .chord-row {
+        color: #1D4ED8 !important;
+      }
+      .lyric-row {
+        font-weight: 400 !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 font-sans antialiased text-slate-900 min-h-screen flex flex-col">
+
+  <!-- HEADER PRINCIPAL (CANTORAL I.C.M.) -->
+  <header class="bg-icm-header text-white px-4 py-3 sm:px-6 shadow-md flex items-center justify-between z-30 no-print">
+    <div class="flex items-center gap-3">
+      <!-- Botón Menú Móvil -->
+      <button onclick="toggleSidebar()" class="lg:hidden p-1.5 rounded-lg hover:bg-white/10 text-white transition">
+        <i data-lucide="menu" class="w-6 h-6"></i>
+      </button>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-wide">Cantoral I.C.M.</h1>
+    </div>
+
+    <!-- Acciones Header e Imagen Devocional -->
+    <div class="flex items-center gap-2 sm:gap-4">
+      <button onclick="openForm()" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-semibold tracking-wide transition">
+        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+        <span>Agregar Canto</span>
+      </button>
+
+      <!-- Icono Iglesia / Devocional -->
+      <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/20 overflow-hidden border-2 border-white/40 shadow-inner flex items-center justify-center text-white">
+        <i data-lucide="church" class="w-6 h-6"></i>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL CON MENÚ LATERAL Y LECTOR -->
+  <div class="flex-1 flex overflow-hidden relative">
+
+    <!-- OVERLAY EN MÓVIL PARA CERRAR EL MENÚ LATERAL -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 z-20 hidden lg:hidden no-print"></div>
+
+    <!-- MENÚ LATERAL DE MOMENTOS (PÍLDORAS AZULES + DESPLEGABLE DE CANTOS) -->
+    <aside id="sidebar" class="w-72 sm:w-80 bg-icm-bgLeft border-r border-slate-300 flex flex-col fixed lg:static inset-y-0 left-0 z-20 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out no-print">
+      
+      <!-- Buscador interno -->
+      <div class="p-3 border-b border-slate-300/60">
+        <div class="relative">
+          <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+          <input type="text" id="searchInput" oninput="renderSongsBySearch()" placeholder="Buscar canto..." 
+                 class="w-full pl-9 pr-3 py-2 bg-white rounded-lg text-xs border border-slate-300 focus:outline-none focus:ring-2 focus:ring-icm-header">
+        </div>
+      </div>
+
+      <!-- Categorías Litúrgicas y Lista Desplegable de Cantos -->
+      <div class="p-4 overflow-y-auto flex-1 space-y-2.5" id="categoriesList">
+        <!-- Generado dinámicamente -->
+      </div>
+
+      <!-- Botón Móvil Agregar -->
+      <div class="p-3 border-t border-slate-300/60 sm:hidden">
+        <button onclick="openForm()" class="w-full py-2 bg-icm-btn text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>Agregar Canto</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ÁREA DE LECTURA DE CANTO Y DETALLES -->
+    <main class="flex-1 overflow-y-auto bg-white p-4 sm:p-8 relative" id="main-content">
+
+      <!-- TOOLBAR DE CONTROLES (Transposición, Edición) - Oculto hasta seleccionar un canto -->
+      <div id="songToolbar" class="max-w-3xl mx-auto mb-6 flex-wrap items-center justify-between gap-3 border-b pb-4 no-print hidden">
+        
+        <!-- Información del canto actual -->
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-slate-500 uppercase">Sección:</span>
+          <span id="currentSectionBadge" class="bg-icm-header text-white px-2.5 py-1 rounded-full text-xs font-bold"></span>
+        </div>
+
+        <!-- Controles de Transposición (+1 / -1) -->
+        <div class="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200 text-xs">
+          <span class="px-2 font-bold text-slate-600">Acordes:</span>
+          <button onclick="transpose(-1)" class="w-7 h-7 bg-white rounded shadow-sm font-bold text-icm-header hover:bg-slate-50 transition">-1</button>
+          <span id="transpositionValue" class="w-8 text-center font-bold text-slate-800">0</span>
+          <button onclick="transpose(1)" class="w-7 h-7 bg-white rounded shadow-sm font-bold text-icm-header hover:bg-slate-50 transition">+1</button>
+          <button onclick="resetTranspose()" class="px-2 text-slate-400 hover:text-slate-600 text-[10px] underline">Reset</button>
+        </div>
+
+        <!-- Acciones de edición -->
+        <div class="flex items-center gap-1">
+          <button onclick="editCurrentSong()" class="p-2 text-slate-600 hover:text-icm-header hover:bg-slate-100 rounded-lg transition" title="Editar Canto">
+            <i data-lucide="edit-3" class="w-5 h-5"></i>
+          </button>
+          <button onclick="deleteCurrentSong()" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Eliminar Canto">
+            <i data-lucide="trash-2" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- PANORAMA INICIAL / BIENVENIDA -->
+      <div id="welcomeMessage" class="max-w-md mx-auto text-center py-16 px-4 no-print">
+        <div class="w-16 h-16 bg-blue-50 text-icm-header rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+          <i data-lucide="music" class="w-8 h-8"></i>
+        </div>
+        <h3 class="text-xl font-bold text-slate-800 mb-2">Bienvenido al Cantoral I.C.M.</h3>
+        <p class="text-xs text-slate-500 mb-6 leading-relaxed">
+          Selecciona un momento litúrgico en el menú lateral para ver la lista de cantos y elegir el que desees interpretar.
+        </p>
+        <button onclick="toggleSidebar(true)" class="lg:hidden inline-flex items-center gap-2 px-4 py-2.5 bg-icm-btn text-white rounded-xl text-xs font-bold shadow">
+          <i data-lucide="list" class="w-4 h-4"></i>
+          <span>Ver momentos litúrgicos</span>
+        </button>
+      </div>
+
+      <!-- VISTA IMPRESA Y HOJA DEL CANTO -->
+      <div class="max-w-3xl mx-auto hidden" id="printable-content">
+        <!-- Encabezado del canto -->
+        <div class="mb-6">
+          <h2 id="songTitle" class="text-2xl sm:text-3xl font-black text-icm-header tracking-tight"></h2>
+          <div class="flex items-center gap-3 mt-1 text-xs text-slate-600 font-medium">
+            <span id="songAuthor"></span>
+            <span>•</span>
+            <span id="songCategory" class="font-bold uppercase text-slate-800"></span>
+          </div>
+        </div>
+
+        <!-- Cuerpo del Canto con Acordes en Azul y Letra Normal -->
+        <div id="songLinesContainer" class="space-y-1 font-sans">
+          <!-- Líneas cargadas dinámicamente -->
+        </div>
+      </div>
+
+      <!-- BOTÓN FLOTANTE PDF / IMPRIMIR (Esquina inferior derecha) -->
+      <button id="pdfBtn" onclick="window.print()" class="fixed bottom-6 right-6 w-14 h-14 bg-white border-2 border-slate-800 rounded-xl shadow-xl flex-col items-center justify-center hover:scale-105 active:scale-95 transition-all z-30 no-print group hidden">
+        <i data-lucide="file-text" class="w-6 h-6 text-slate-800 group-hover:text-icm-header"></i>
+        <span class="text-[9px] font-black text-slate-800 -mt-0.5 tracking-tighter">PDF</span>
+      </button>
+    </main>
+  </div>
+
+  <!-- MODAL: AGREGAR / EDITAR CANTO -->
+  <div id="formModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden no-print">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 id="formModalTitle" class="text-lg font-bold text-slate-900">Agregar Nuevo Canto</h3>
+        <button onclick="closeForm()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <form id="songForm" onsubmit="saveSong(event)" class="space-y-4">
+        <input type="hidden" id="songId">
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Título del Canto *</label>
+          <input type="text" id="inputTitle" required placeholder="Ej. Aquí estamos, Señor" 
+                 class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-icm-header outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Momento Litúrgico *</label>
+            <select id="selectCategory" required class="w-full px-3 py-2 border rounded-xl text-sm bg-white focus:ring-2 focus:ring-icm-header outline-none">
+              <!-- Cargado dinámicamente -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Autor / Fuente</label>
+            <input type="text" id="inputAuthor" placeholder="Ej. Tradicional" 
+                   class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-icm-header outline-none">
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="block text-xs font-bold text-slate-700">Acordes y Letra *</label>
+            <button type="button" onclick="insertExampleForm()" class="text-xs text-icm-header hover:underline font-semibold">Cargar ejemplo</button>
+          </div>
+          <p class="text-[11px] text-slate-500 mb-2">
+            Pon los acordes entre corchetes <code>[DO]</code> justo antes de la palabra o sílaba donde va el acorde.
+          </p>
+          <textarea id="inputContent" required rows="10" 
+                    placeholder="[DO]Aquí estamos, Señor&#10;[LAm]en tu casa otra vez..." 
+                    class="w-full p-3 border rounded-xl text-sm font-sans leading-relaxed focus:ring-2 focus:ring-icm-header outline-none"></textarea>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="closeForm()" class="flex-1 py-2.5 border rounded-xl font-bold text-slate-600 text-sm">Cancelar</button>
+          <button type="submit" class="flex-1 py-2.5 bg-icm-btn text-white rounded-xl font-bold text-sm hover:bg-icm-btnHover transition">Guardar Canto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- LÓGICA DE LA APLICACIÓN -->
+  <script>
+    const CATEGORIES = [
+      "Entrada", "Piedad", "Gloria", "Aleluya", 
+      "Ofertorio", "Santo", "Cordero", "Comunión", "Salida", "Maria", "Otros"
+    ];
+
+    const INITIAL_SONGS = [
+      {
+        id: "1",
+        title: "Aquí estamos, Señor",
+        category: "Entrada",
+        author: "",
+        content: `[DO]Aquí estamos, Señor
+[LAm]en tu casa otra vez,
+[FA]¡qué a[SOL]legría [DO]volverte a encontrar!
+
+[DO]Vamos a compartir
+[LAm]y a expresar nuestra fe,
+[FA]como [SOL]hermanos [DO]en [DO7]torno al altar.
+
+[FA]En el [SOL]Nombre de Dios
+[DO]vamos [LAm]a celebrar
+[FA]el mis[SOL]terio [DO]de la salvación.
+
+[FA]El Se[SOL]ñor nos dará [DO]su pa[LAm]labra y su paz,
+[FA]es la [SOL]fiesta [DO]del Pueblo de Dios.
+
+Partiremos tu pan,
+signo de comunión,
+beberemos tu vino de amor.
+y a la vez sellarás
+con nosotros, Señor
+una alianza que viene de Dios.
+
+Nos amaste Señor,
+como nadie jamás,
+nos da fuerza tu fidelidad.
+En la mesa de Dios
+hoy nos transformarás
+en fermento de comunidad.`
+      }
+    ];
+
+    let songs = [];
+    let activeCategory = null; // Sin categoría seleccionada al inicio
+    let activeSongId = null;   // Sin canto seleccionado al inicio
+    let transpositionOffset = 0;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadData();
+      renderSidebarCategories();
+      displayCurrentSong();
+      lucide.createIcons();
+    });
+
+    function loadData() {
+      const saved = localStorage.getItem('icm_cantoral_songs');
+      songs = saved ? JSON.parse(saved) : INITIAL_SONGS;
+    }
+
+    function saveData() {
+      localStorage.setItem('icm_cantoral_songs', JSON.stringify(songs));
+    }
+
+    // Renderizar categorías del menú lateral y la lista desplegada de cantos de la categoría activa
+    function renderSidebarCategories() {
+      const container = document.getElementById('categoriesList');
+      const selectForm = document.getElementById('selectCategory');
+
+      container.innerHTML = CATEGORIES.map(cat => {
+        const isActive = cat === activeCategory;
+        const categorySongs = songs.filter(s => s.category === cat);
+
+        let songsListHtml = '';
+        if (isActive) {
+          if (categorySongs.length > 0) {
+            songsListHtml = `
+              <div class="mt-2 mb-3 bg-white/80 rounded-2xl p-2 border border-blue-200/60 shadow-inner space-y-1">
+                ${categorySongs.map(s => {
+                  const isSongActive = s.id === activeSongId;
+                  return `
+                    <button onclick="selectSong('${s.id}')" 
+                            class="w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between ${
+                              isSongActive 
+                                ? 'bg-icm-header text-white shadow-sm' 
+                                : 'text-slate-700 hover:bg-blue-100/60'
+                            }">
+                      <span class="truncate">${s.title}</span>
+                      <i data-lucide="chevron-right" class="w-3.5 h-3.5 opacity-60"></i>
+                    </button>
+                  `;
+                }).join('')}
+              </div>
+            `;
+          } else {
+            songsListHtml = `
+              <div class="mt-2 mb-3 bg-white/50 rounded-2xl p-3 text-center border border-dashed border-slate-300">
+                <p class="text-[11px] text-slate-500 mb-1 font-medium">Sin cantos en esta sección</p>
+                <button onclick="openForm()" class="text-xs font-bold text-icm-header hover:underline">+ Agregar Canto</button>
+              </div>
+            `;
+          }
+        }
+
+        return `
+          <div>
+            <button onclick="selectCategory('${cat}')" 
+                    class="w-full py-2.5 px-4 rounded-full text-center text-sm font-bold transition-all shadow-sm flex items-center justify-between ${
+                      isActive 
+                        ? 'bg-icm-btn text-white ring-2 ring-icm-btn/30 shadow-md' 
+                        : 'bg-icm-btn text-white/95 hover:bg-icm-btnHover hover:text-white'
+                    }">
+              <span class="w-full text-center">${cat}</span>
+              <i data-lucide="${isActive ? 'chevron-down' : 'chevron-right'}" class="w-4 h-4 ml-auto"></i>
+            </button>
+            ${songsListHtml}
+          </div>
+        `;
+      }).join('');
+
+      selectForm.innerHTML = CATEGORIES.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+      lucide.createIcons();
+    }
+
+    function selectCategory(category) {
+      if (activeCategory === category) {
+        // Al tocar de nuevo la categoría activa, la cierra
+        activeCategory = null;
+      } else {
+        activeCategory = category;
+      }
+      
+      renderSidebarCategories();
+    }
+
+    function selectSong(songId) {
+      activeSongId = songId;
+      transpositionOffset = 0;
+      updateTranspositionUI();
+      renderSidebarCategories();
+      displayCurrentSong();
+
+      // En móviles, cerrar menú tras seleccionar un canto para leerlo directamente
+      if (window.innerWidth < 1024) {
+        toggleSidebar(false);
+      }
+    }
+
+    // TRANSPOSICIÓN Y FORMATO DE ACORDES
+    const LATIN_SCALE = ["DO", "DO#", "RE", "RE#", "MI", "FA", "FA#", "SOL", "SOL#", "LA", "LA#", "SI"];
+    const ENGLISH_SCALE = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+    function transposeNote(chord, semitones) {
+      return chord.replace(/\b(DO|RE|MI|FA|SOL|LA|SI|C|D|E|F|G|A|B)(m|maj7|7|m7|sus4|dim|aug|add9|6)?\b/gi, (match) => {
+        let isLatin = LATIN_SCALE.some(n => match.toUpperCase().startsWith(n));
+        let scale = isLatin ? LATIN_SCALE : ENGLISH_SCALE;
+
+        let baseNote = scale.find(n => match.toUpperCase().startsWith(n));
+        if (!baseNote) return match;
+
+        let index = scale.indexOf(baseNote);
+        let newIndex = (index + semitones) % 12;
+        if (newIndex < 0) newIndex += 12;
+
+        let suffix = match.slice(baseNote.length);
+        return scale[newIndex] + suffix;
+      });
+    }
+
+    function displayCurrentSong() {
+      const welcome = document.getElementById('welcomeMessage');
+      const printableContent = document.getElementById('printable-content');
+      const songToolbar = document.getElementById('songToolbar');
+      const pdfBtn = document.getElementById('pdfBtn');
+
+      if (!activeSongId) {
+        // Mostrar mensaje inicial limpia si no hay canto elegido
+        welcome.classList.remove('hidden');
+        printableContent.classList.add('hidden');
+        songToolbar.classList.add('hidden');
+        pdfBtn.classList.add('hidden');
+        pdfBtn.classList.remove('flex');
+        return;
+      }
+
+      const song = songs.find(s => s.id === activeSongId);
+      if (!song) return;
+
+      // Ocultar mensaje inicial y mostrar área de lectura
+      welcome.classList.add('hidden');
+      printableContent.classList.remove('hidden');
+      songToolbar.classList.remove('hidden');
+      songToolbar.classList.add('flex');
+      pdfBtn.classList.remove('hidden');
+      pdfBtn.classList.add('flex');
+
+      document.getElementById('currentSectionBadge').textContent = song.category;
+      document.getElementById('songTitle').textContent = song.title;
+      document.getElementById('songAuthor').textContent = song.author ? `Autor: ${song.author}` : 'Autor: Tradicional';
+      document.getElementById('songCategory').textContent = song.category;
+
+      const lines = song.content.split('\n');
+      let html = '';
+
+      lines.forEach(line => {
+        if (!line.trim()) {
+          html += '<div class="h-4"></div>';
+          return;
+        }
+
+        let chordRow = '';
+        let lyricRow = '';
+        let cursor = 0;
+
+        const regex = /\[(.*?)\]/g;
+        let match;
+
+        while ((match = regex.exec(line)) !== null) {
+          const textBefore = line.substring(cursor, match.index);
+          lyricRow += textBefore;
+
+          const spaceDiff = lyricRow.length - chordRow.length;
+          if (spaceDiff > 0) {
+            chordRow += ' '.repeat(spaceDiff);
+          }
+
+          const rawChord = match[1];
+          const transposed = transposeNote(rawChord, transpositionOffset);
+          chordRow += transposed;
+
+          cursor = regex.lastIndex;
+        }
+
+        lyricRow += line.substring(cursor);
+
+        html += `
+          <div class="song-line-container">
+            ${chordRow.trim() ? `<div class="chord-row">${escapeHtml(chordRow)}</div>` : ''}
+            <div class="lyric-row">${escapeHtml(lyricRow)}</div>
+          </div>
+        `;
+      });
+
+      document.getElementById('songLinesContainer').innerHTML = html;
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function transpose(semitones) {
+      transpositionOffset += semitones;
+      updateTranspositionUI();
+      displayCurrentSong();
+    }
+
+    function resetTranspose() {
+      transpositionOffset = 0;
+      updateTranspositionUI();
+      displayCurrentSong();
+    }
+
+    function updateTranspositionUI() {
+      document.getElementById('transpositionValue').textContent = 
+        (transpositionOffset > 0 ? `+${transpositionOffset}` : transpositionOffset);
+    }
+
+    function toggleSidebar(forceState) {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      
+      const isHidden = sidebar.classList.contains('-translate-x-full');
+      const newState = forceState !== undefined ? forceState : isHidden;
+
+      if (newState) {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+      }
+    }
+
+    function openForm(editId = null) {
+      const form = document.getElementById('songForm');
+      form.reset();
+
+      if (editId) {
+        const song = songs.find(s => s.id === editId);
+        document.getElementById('songId').value = song.id;
+        document.getElementById('inputTitle').value = song.title;
+        document.getElementById('selectCategory').value = song.category;
+        document.getElementById('inputAuthor').value = song.author || '';
+        document.getElementById('inputContent').value = song.content;
+        document.getElementById('formModalTitle').textContent = "Editar Canto";
+      } else {
+        document.getElementById('songId').value = '';
+        document.getElementById('selectCategory').value = activeCategory || "Entrada";
+        document.getElementById('formModalTitle').textContent = "Agregar Nuevo Canto";
+      }
+
+      document.getElementById('formModal').classList.remove('hidden');
+    }
+
+    function closeForm() {
+      document.getElementById('formModal').classList.add('hidden');
+    }
+
+    function editCurrentSong() {
+      if (activeSongId) openForm(activeSongId);
+    }
+
+    function deleteCurrentSong() {
+      if (!activeSongId) return;
+      if (confirm('¿Deseas eliminar este canto?')) {
+        songs = songs.filter(s => s.id !== activeSongId);
+        saveData();
+        activeSongId = null;
+        renderSidebarCategories();
+        displayCurrentSong();
+      }
+    }
+
+    function saveSong(e) {
+      e.preventDefault();
+      const id = document.getElementById('songId').value;
+      const title = document.getElementById('inputTitle').value.trim();
+      const category = document.getElementById('selectCategory').value;
+      const author = document.getElementById('inputAuthor').value.trim();
+      const content = document.getElementById('inputContent').value;
+
+      if (id) {
+        const index = songs.findIndex(s => s.id === id);
+        songs[index] = { id, title, category, author, content };
+        activeSongId = id;
+      } else {
+        const newId = Date.now().toString();
+        songs.push({ id: newId, title, category, author, content });
+        activeSongId = newId;
+      }
+
+      saveData();
+      closeForm();
+      activeCategory = category;
+      renderSidebarCategories();
+      displayCurrentSong();
+    }
+
+    function insertExampleForm() {
+      document.getElementById('inputContent').value = 
+`[DO]Aquí estamos, Señor
+[LAm]en tu casa otra vez,
+[FA]¡qué a[SOL]legría [DO]volverte a encontrar!`;
+    }
+
+    function renderSongsBySearch() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      if (!query) return;
+
+      const found = songs.find(s => s.title.toLowerCase().includes(query) || s.content.toLowerCase().includes(query));
+      if (found) {
+        activeCategory = found.category;
+        activeSongId = found.id;
+        renderSidebarCategories();
+        displayCurrentSong();
+      }
+    }
+  </script>
+</body>
+</html>
